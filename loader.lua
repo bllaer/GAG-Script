@@ -8,7 +8,7 @@ local SolvixLoader = {}
 -- Configuration
 local config = {
     githubUser = "bllaer", -- Your GitHub username
-    repository = "luatest", -- Your repository name
+    repository = "GAG-Script", -- Your repository name
     branch = "main", -- Branch to pull from
     scripts = {
         "handler", -- Will handle the loading screen and main GUI initialization
