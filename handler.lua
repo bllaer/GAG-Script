@@ -32,7 +32,7 @@ function SolvixHandler:ShowLoadingScreen(container)
     frame.Name = "SolvixLoadingScreen"
     frame.Size = UDim2.new(0, 300, 0, 150)
     frame.Position = UDim2.new(0.5, -150, 0.5, -75)
-    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     frame.BorderSizePixel = 0
     frame.Parent = container
     
@@ -47,9 +47,10 @@ function SolvixHandler:ShowLoadingScreen(container)
     title.Size = UDim2.new(1, 0, 0, 40)
     title.Position = UDim2.new(0, 0, 0, 10)
     title.BackgroundTransparency = 1
-    title.Text = "SOLVIX HUB"
-    title.TextColor3 = Color3.fromRGB(0, 255, 0)
-    title.TextSize = 24
+    title.RichText = true
+    title.Text = "<font color='#00FF00'>Scripts</font> | <font color='#FF0000'>Mobile Support</font>"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextSize = 20
     title.Font = Enum.Font.GothamBold
     title.Parent = frame
     
@@ -82,7 +83,7 @@ function SolvixHandler:ShowLoadingScreen(container)
     progressBg.Name = "ProgressBackground"
     progressBg.Size = UDim2.new(0.8, 0, 0, 10)
     progressBg.Position = UDim2.new(0.1, 0, 0, 100)
-    progressBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    progressBg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     progressBg.BorderSizePixel = 0
     progressBg.Parent = frame
     
@@ -211,10 +212,14 @@ end
 -- Initialize the main UI
 function SolvixHandler:InitializeUI(container, scripts)
     -- This function will initialize the main UI using the ui script
-    -- The implementation depends on how your ui.lua is structured
     
     if scripts.ui and scripts.ui.Initialize then
-        scripts.ui:Initialize(container, scripts)
+        local ui = scripts.ui:Initialize(container, scripts)
+        
+        -- If features module exists, set up the tabs
+        if scripts.features and ui then
+            scripts.features:SetupTabs(ui.Tabs, ui)
+        end
     elseif scripts.ui then
         -- If ui doesn't have an Initialize method, try to use it directly
         local success, result = pcall(function()
