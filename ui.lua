@@ -1,9 +1,9 @@
 --[[
-    Solvix Hub - Main GUI Module
-    The primary interface for the Solvix Hub
+    Solvix Hub - UI
+    Main user interface for Solvix Hub
 ]]
 
-local MainGUI = {}
+local SolvixUI = {}
 
 -- Colors
 local COLORS = {
@@ -16,7 +16,8 @@ local COLORS = {
     buttonHover = Color3.fromRGB(50, 50, 50)
 }
 
-function MainGUI:Show(parent)
+-- Initialize the UI
+function SolvixUI:Initialize(container, scripts)
     -- Create main frame
     self.Frame = Instance.new("Frame")
     self.Frame.Name = "SolvixHubMain"
@@ -25,7 +26,7 @@ function MainGUI:Show(parent)
     self.Frame.BackgroundColor3 = COLORS.background
     self.Frame.BorderSizePixel = 0
     self.Frame.Visible = true
-    self.Frame.Parent = parent
+    self.Frame.Parent = container
     
     -- Add corner radius
     local corner = Instance.new("UICorner")
@@ -142,8 +143,8 @@ function MainGUI:Show(parent)
     contentArea.Parent = self.Frame
     
     -- Create tabs in sidebar
-    local tabButtons = {}
-    local tabs = {}
+    self.TabButtons = {}
+    self.Tabs = {}
     local tabNames = {"Main", "Auto Farm", "Teleport", "Settings"}
     
     for i, tabName in ipairs(tabNames) do
@@ -184,24 +185,12 @@ function MainGUI:Show(parent)
         placeholderText.Parent = tabContent
         
         -- Store references
-        tabButtons[tabName] = tabBtn
-        tabs[tabName] = tabContent
+        self.TabButtons[tabName] = tabBtn
+        self.Tabs[tabName] = tabContent
         
         -- Tab button click handler
         tabBtn.MouseButton1Click:Connect(function()
-            -- Hide all tabs
-            for _, tab in pairs(tabs) do
-                tab.Visible = false
-            end
-            
-            -- Reset all button colors
-            for _, btn in pairs(tabButtons) do
-                btn.BackgroundColor3 = COLORS.button
-            end
-            
-            -- Show selected tab and highlight button
-            tabs[tabName].Visible = true
-            tabBtn.BackgroundColor3 = COLORS.accent
+            self:SwitchTab(tabName)
         end)
         
         -- Set first tab as active by default
@@ -226,43 +215,42 @@ function MainGUI:Show(parent)
     self:MakeDraggable(header)
     
     -- Add fade-in animation
-    self.Frame.BackgroundTransparency = 1
-    for _, child in pairs(self.Frame:GetDescendants()) do
-        if child:IsA("TextLabel") or child:IsA("TextButton") then
-            child.TextTransparency = 1
-        end
-        if child:IsA("Frame") or child:IsA("TextButton") then
-            child.BackgroundTransparency = 1
-        end
-        if child:IsA("ImageLabel") then
-            child.ImageTransparency = 1
-        end
+    self:FadeIn()
+    
+    -- Initialize features if available
+    if scripts.features then
+        self:InitializeFeatures(scripts.features)
     end
     
-    -- Fade in animation
-    spawn(function()
-        for i = 1, 0, -0.1 do
-            self.Frame.BackgroundTransparency = i
-            shadow.ImageTransparency = 0.5 + i * 0.5
-            
-            for _, child in pairs(self.Frame:GetDescendants()) do
-                if child:IsA("TextLabel") or child:IsA("TextButton") then
-                    child.TextTransparency = i
-                end
-                if (child:IsA("Frame") or child:IsA("TextButton")) and child.Name ~= "Shadow" then
-                    child.BackgroundTransparency = i
-                end
-                if child:IsA("ImageLabel") and child.Name ~= "Shadow" then
-                    child.ImageTransparency = i
-                end
-            end
-            
-            wait(0.02)
-        end
-    end)
+    return self
 end
 
-function MainGUI:MakeDraggable(dragObject)
+-- Switch between tabs
+function SolvixUI:SwitchTab(tabName)
+    -- Hide all tabs
+    for _, tab in pairs(self.Tabs) do
+        tab.Visible = false
+    end
+    
+    -- Reset all button colors
+    for _, btn in pairs(self.TabButtons) do
+        btn.BackgroundColor3 = COLORS.button
+    end
+    
+    -- Show selected tab and highlight button
+    self.Tabs[tabName].Visible = true
+    self.TabButtons[tabName].BackgroundColor3 = COLORS.accent
+end
+
+-- Initialize features
+function SolvixUI:InitializeFeatures(features)
+    if features.SetupTabs then
+        features:SetupTabs(self.Tabs, self)
+    end
+end
+
+-- Make the frame draggable
+function SolvixUI:MakeDraggable(dragObject)
     local dragging = false
     local dragInput, mousePos, framePos
     
@@ -299,7 +287,47 @@ function MainGUI:MakeDraggable(dragObject)
     end)
 end
 
-function MainGUI:Hide()
+-- Fade in animation
+function SolvixUI:FadeIn()
+    self.Frame.BackgroundTransparency = 1
+    for _, child in pairs(self.Frame:GetDescendants()) do
+        if child:IsA("TextLabel") or child:IsA("TextButton") then
+            child.TextTransparency = 1
+        end
+        if child:IsA("Frame") or child:IsA("TextButton") then
+            child.BackgroundTransparency = 1
+        end
+        if child:IsA("ImageLabel") then
+            child.ImageTransparency = 1
+        end
+    end
+    
+    -- Fade in animation
+    spawn(function()
+        for i = 1, 0, -0.1 do
+            if not self.Frame or not self.Frame.Parent then break end
+            
+            self.Frame.BackgroundTransparency = i
+            
+            for _, child in pairs(self.Frame:GetDescendants()) do
+                if child:IsA("TextLabel") or child:IsA("TextButton") then
+                    child.TextTransparency = i
+                end
+                if (child:IsA("Frame") or child:IsA("TextButton")) and child.Name ~= "Shadow" then
+                    child.BackgroundTransparency = i
+                end
+                if child:IsA("ImageLabel") and child.Name ~= "Shadow" then
+                    child.ImageTransparency = i
+                end
+            end
+            
+            wait(0.02)
+        end
+    end)
+end
+
+-- Hide the UI
+function SolvixUI:Hide()
     -- Fade out animation
     spawn(function()
         for i = 0, 1, 0.1 do
@@ -329,4 +357,40 @@ function MainGUI:Hide()
     end)
 end
 
-return MainGUI
+-- Create a button in a specific tab
+function SolvixUI:CreateButton(tabName, buttonText, position, callback)
+    if not self.Tabs[tabName] then return nil end
+    
+    local button = Instance.new("TextButton")
+    button.Name = buttonText .. "Button"
+    button.Size = UDim2.new(0, 150, 0, 30)
+    button.Position = position or UDim2.new(0.5, -75, 0.5, -15)
+    button.BackgroundColor3 = COLORS.button
+    button.Text = buttonText
+    button.TextColor3 = COLORS.text
+    button.TextSize = 14
+    button.Font = Enum.Font.Gotham
+    button.Parent = self.Tabs[tabName]
+    
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 6)
+    buttonCorner.Parent = button
+    
+    -- Hover effect
+    button.MouseEnter:Connect(function()
+        button.BackgroundColor3 = COLORS.buttonHover
+    end)
+    
+    button.MouseLeave:Connect(function()
+        button.BackgroundColor3 = COLORS.button
+    end)
+    
+    -- Click callback
+    if callback then
+        button.MouseButton1Click:Connect(callback)
+    end
+    
+    return button
+end
+
+return SolvixUI
